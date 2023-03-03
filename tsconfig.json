@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "es2021",
+    "module": "commonjs",
+    "outDir": "./build",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "skipLibCheck": true,
+    "baseUrl": "src/",
+    "paths": {
+      "@badges-metadata/*": ["../badges-metadata/*"],
+      "@flows/*": ["../flows/*"],
+      "@group-generators/*": ["../group-generators/*"]
+    }
+  },
+  "exclude": ["node_modules", "generated-dev"],
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
+  }
+}

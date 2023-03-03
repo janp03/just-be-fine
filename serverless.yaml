@@ -1,0 +1,117 @@
+service: sismo-hub
+frameworkVersion: "3"
+
+custom:
+  webpack:
+    packager: "yarn"
+    includeModules: true
+  provisionedConcurrency:
+    dev: 0
+    playground: 0
+    staging: 1
+    testnets: 1
+    prod: 2 
+  envs:
+    dev:
+      SH_STATIC_URL: https://sismo-dev-hub-static.s3.eu-west-1.amazonaws.com/
+      SH_S3_DATA_BUCKET_NAME: sismo-dev-hub-data
+      SH_S3_DATA_ENDPOINT: https://sismo-dev-hub-data.s3.eu-west-1.amazonaws.com
+      SH_DYNAMO_GLOBAL_TABLE_NAME: sismo-dev-hub-global-table
+      SH_STORAGE_TYPE: "aws"
+      SH_DEFAULT_CONFIGURATION_ENV: dev
+      SH_GITHUB_TOKEN: ${env:SH_GITHUB_TOKEN}
+      HIVE_API_KEY: ${env:HIVE_API_KEY}
+    staging:
+      SH_STATIC_URL: https://sismo-staging-hub-static.s3.eu-west-1.amazonaws.com/
+      SH_S3_DATA_BUCKET_NAME: sismo-staging-hub-data
+      SH_S3_DATA_ENDPOINT: https://sismo-staging-hub-data.s3.eu-west-1.amazonaws.com
+      SH_DYNAMO_GLOBAL_TABLE_NAME: sismo-staging-hub-global-table
+      SH_STORAGE_TYPE: "aws"
+      SH_DEFAULT_CONFIGURATION_ENV: staging
+      SH_GITHUB_TOKEN: ${env:SH_GITHUB_TOKEN}
+      HIVE_API_KEY: ${env:HIVE_API_KEY}
+    playground:
+      SH_STATIC_URL: https://sismo-playground-hub-static.s3.eu-west-1.amazonaws.com/
+      SH_S3_DATA_BUCKET_NAME: sismo-playground-hub-data
+      SH_S3_DATA_ENDPOINT: https://sismo-playground-hub-data.s3.eu-west-1.amazonaws.com
+      SH_DYNAMO_GLOBAL_TABLE_NAME: sismo-playground-hub-global-table
+      SH_STORAGE_TYPE: "aws"
+      SH_DEFAULT_CONFIGURATION_ENV: playground
+      SH_GITHUB_TOKEN: ${env:SH_GITHUB_TOKEN}
+      HIVE_API_KEY: ${env:HIVE_API_KEY}
+    testnets:
+      SH_STATIC_URL: https://sismo-testnets-hub-static.s3.eu-west-1.amazonaws.com/
+      SH_S3_DATA_BUCKET_NAME: sismo-testnets-hub-data
+      SH_S3_DATA_ENDPOINT: https://sismo-testnets-hub-data.s3.eu-west-1.amazonaws.com
+      SH_DYNAMO_GLOBAL_TABLE_NAME: sismo-testnets-hub-global-table
+      SH_STORAGE_TYPE: "aws"
+      SH_DEFAULT_CONFIGURATION_ENV: testnets
+      SH_GITHUB_TOKEN: ${env:SH_GITHUB_TOKEN}
+      HIVE_API_KEY: ${env:HIVE_API_KEY}
+    prod:
+      SH_STATIC_URL: https://sismo-prod-hub-static.s3.eu-west-1.amazonaws.com/
+      SH_S3_DATA_BUCKET_NAME: sismo-prod-hub-data
+      SH_S3_DATA_ENDPOINT: https://sismo-prod-hub-data.s3.eu-west-1.amazonaws.com
+      SH_DYNAMO_GLOBAL_TABLE_NAME: sismo-prod-hub-global-table
+      SH_STORAGE_TYPE: "aws"
+      SH_DEFAULT_CONFIGURATION_ENV: prod
+      SH_GITHUB_TOKEN: ${env:SH_GITHUB_TOKEN}
+      HIVE_API_KEY: ${env:HIVE_API_KEY}
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  memorySize: 1024
+  timeout: 29
+  region: eu-west-1
+  httpApi:
+    cors: true
+  iam:
+    deploymentRole: arn:aws:iam::${aws:accountId}:role/${sls:stage}-sismo-hub-deploy-cloud-formation
+    role:
+      statements:
+        - Effect: Allow
+          Action: "s3:ListBucket"
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - "dynamodb:Get*"
+            - "dynamodb:Query"
+            - "dynamodb:PutItem"
+            - "dynamodb:Update*"
+          Resource:
+            - "Fn::Join":
+                - ":"
+                - - "arn:aws:dynamodb"
+                  - Ref: "AWS::Region"
+                  - Ref: "AWS::AccountId"
+                  - "table/sismo-${sls:stage}-hub-global-table"
+            - "Fn::Join":
+                - ":"
+                - - "arn:aws:dynamodb"
+                  - Ref: "AWS::Region"
+                  - Ref: "AWS::AccountId"
+                  - "table/sismo-${sls:stage}-hub-global-table/*"
+        - Effect: Allow
+          Action:
+            - "s3:ListBucket"
+            - "s3:PutObject"
+            - "s3:GetObject"
+            - "s3:DeleteObject"
+            - "s3:GetBucketPolicy"
+            - "s3:PutBucketPolicy"
+            - "s3:DeleteBucketPolicy"
+            - "s3:PutBucketAcl"
+          Resource:
+            - "arn:aws:s3:::role/sismo-${sls:stage}-hub-data/*"
+
+functions:
+  api:
+    handler: src/api/api-lambda.handler
+    events:
+      - httpApi: "*"
+    environment: ${self:custom.envs.${sls:stage}}
+    provisionedConcurrency: ${self:custom.provisionedConcurrency.${sls:stage}}
+
+plugins:
+  - serverless-webpack
